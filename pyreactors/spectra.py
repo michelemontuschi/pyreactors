@@ -20,7 +20,7 @@ Dec = 31 )
 
 eff = 1.
 targets = 1e32
-tau = 3.15e7 #[s]
+tau = 3.1536e7 #[s]
 
 def readDB(filename, sheet = False): #Get Info from Reactor Database
     if sheet:
@@ -94,7 +94,7 @@ def build_spectra(E): #Convolve Muller spectrum with IBD cross section
     return spe
 
 
-def spectrum(data, E, det_lat, det_lon, det_depth, tau = 3.15e7, hierarchy = 'NH', inMatter = False):
+def spectrum(data, E, det_lat, det_lon, det_depth, tau = 3.1536e7, hierarchy = 'NH', inMatter = False):
     # Calculation of spectrum for all reactors [Marica Baldoncini, et al. Phys. Rev. D 91, 065002] Eq. 15
     #   spe_dict=dict()
     #           |
@@ -107,7 +107,7 @@ def spectrum(data, E, det_lat, det_lon, det_depth, tau = 3.15e7, hierarchy = 'NH
     # data = reactors data
     # E = Energy Axis
     # det_lat, det_lon, det_depth = detector latitude, longitude and depth
-    # tau = 3.15e7 #s = 1 year acquisition time
+    # tau = 3.1536e7 #s = 1 year acquisition time
     # hierarchy = 'NH' if Normal Hierarchy, 'IH' if inverse hierarchy
     # equation =  which equation to be used (from [F. Capozzi, E. Lisi, and A. Marrone Phys. Rev. D 89, 013001 – Published 9 January 2014])
     # inMatter = WIP
@@ -131,12 +131,12 @@ def spectrum(data, E, det_lat, det_lon, det_depth, tau = 3.15e7, hierarchy = 'NH
 
 
     
-def spe_reactors(data, E, tau = 3.15e7):
+def spe_reactors(data, E, tau = 3.1536e7):
     
     # Calculation of the spectrum at reactor location at every reactor locations
     # data = reactors data
     # E = Energy Axis
-    # tau = 3.15e7 #s = 1 year acquisition time
+    # tau = 3.1536e7 #s = 1 year acquisition time
 
     spe_dict = dict()
 
@@ -147,7 +147,7 @@ def spe_reactors(data, E, tau = 3.15e7):
 
     return spe_dict
 
-def spectrum_single(E, det_lat, det_lon, det_depth, rea_lat, rea_lon, P, lf, fuel, tau = 3.15e7, hierarchy = 'NH', inMatter = False):
+def spectrum_single(E, det_lat, det_lon, det_depth, rea_lat, rea_lon, P, lf, fuel, tau = 3.1536e7, hierarchy = 'NH', inMatter = False):
     
     # Calculation of spectrum for a single reactor [Marica Baldoncini, et al. Phys. Rev. D 91, 065002] Eq. 15
     #   spe = dict()
@@ -162,7 +162,7 @@ def spectrum_single(E, det_lat, det_lon, det_depth, rea_lat, rea_lon, P, lf, fue
     # P = Reactor Thermal Power in MW
     # lf = load factor
     # fuel = which fuel operate the reactor
-    # tau = 3.15e7 #s = 1 year acquisition time
+    # tau = 3.1536e7 #s = 1 year acquisition time
     # hierarchy = 'NH' if Normal Hierarchy, 'IH' if inverse hierarchy
     # equation =  which equation to be used (from [F. Capozzi, E. Lisi, and A. Marrone Phys. Rev. D 89, 013001 – Published 9 January 2014])
     # inMatter = WIP
@@ -213,14 +213,14 @@ def spectrum_single(E, det_lat, det_lon, det_depth, rea_lat, rea_lon, P, lf, fue
 
 
 
-def spe_reactor(E, P, lf, fuel, tau = 3.15e7):
+def spe_reactor(E, P, lf, fuel, tau = 3.1536e7):
 
     # Calculation of the spectrum at reactor location
     # E = Energy Axis
     # P = Reactor Thermal Power in MW
     # lf = load factor
     # fuel = which fuel operate the reactor
-    # tau = 3.15e7 #s = 1 year acquisition time
+    # tau = 3.1536e7 #s = 1 year acquisition time
 
     ###########################Norm factor due to reactor###########################
 
