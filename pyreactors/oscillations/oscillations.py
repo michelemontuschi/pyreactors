@@ -85,7 +85,7 @@ def Pee3v_39(d, E_nu, hierarchy = 'NH', inMatter = False): # m, keV
     P2v = P2_vac(s2_2th12, Delta_small)
 
     if inMatter:
-        P2v = P2_mat(s2_2th12, eMev, dm2_21, conv_factor, d, Ne=1.3)
+        #P2v = P2_mat(s2_2th12, eMev, dm2_21, conv_factor, d, Ne=1.3)
         w = get_damp_fact(d, E_nu, [], [], hierarchy)
 
     
@@ -179,14 +179,25 @@ def P2_mat(s2_2th12, eMev, dm2_21, conv_factor, d, Ne=1.3):
     s_2th12 = np.sqrt(s2_2th12)
     c_2th12 = np.sqrt(1 - s2_2th12)
 
-    s_th12_ma = s_2th12 * (1 - r * c_2th12)
-    dm2_21_ma = dm2_21 * (1 - r * c_2th12)
+    #print(r * c_2th12)
+    r_cos2th12=get_rcos_mat(s2_2th12, eMev, dm2_21, Ne)
+    s_2th12_ma = (s_2th12 * (1 - r_cos2th12))
+    s2_2th12_ma = s_2th12_ma**2
 
-    Delta_small_ma = get_delta_small(dm2_21_ma , d , eMev)  # dm = dm2_21
+    dm2_21_ma = dm2_21 * (1 + r_cos2th12)
+    Delta_small_ma = get_delta_small(dm2_21_ma, d, eMev)  # dm = dm2_21
 
-    P2_mat = 1 - ((s_th12_ma) * np.sin(Delta_small_ma)) ** 2
+    P2_mat = P2_vac(s2_2th12_ma, Delta_small_ma)
+    #P2_mat = 1 - (s2_2th12_ma) * np.sin(Delta_small_ma) ** 2
 
     return P2_mat
+
+def get_rcos_mat(s2_2th12, eMev, dm2_21, Ne=1.3):
+
+    r = 1.526e-7 * Ne * eMev / dm2_21
+    c_2th12 = np.sqrt(1 - s2_2th12)
+
+    return r * c_2th12
 
 def get_damp_fact(d, E_nu, Ln, wn, hierarchy = 'NH'):
     params = getParams(hierarchy)
@@ -208,14 +219,14 @@ def get_damp_fact(d, E_nu, Ln, wn, hierarchy = 'NH'):
 
     D_ee = conv_factor * Dm_ee * d / eMev
 
-    damp_fact = 0
+    #damp_fact = 0
 
     sum_wn_ln=2.16e-5
 
     for l_i, w_i in zip(Ln, wn):
-        damp_fact = damp_fact + (1 - 2 * (D_ee**2) * w_i * (l_i / d)**2)
+        sum_wn_ln = sum_wn_ln + (w_i * (l_i / d)**2)
 
-    damp_fact = (1 - 2 * (D_ee ** 2) * sum_wn_ln)
+    damp_fact = (1 - 4 * (D_ee ** 2) * sum_wn_ln)
 
     return damp_fact
 

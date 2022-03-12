@@ -17,11 +17,6 @@ Oct = 31,
 Nov = 30,
 Dec = 31 )
 
-
-eff = 1.
-targets = 1e32
-tau = 3.1536e7 #[s]
-
 def readDB(filename, sheet = False): #Get Info from Reactor Database
     if sheet:
         data = pd.read_excel(filename, sheet)
@@ -93,6 +88,69 @@ def build_spectra(E): #Convolve Muller spectrum with IBD cross section
         spe[el] = c_section * m_spectra         # [(#nu*m^2)/fission]
     return spe
 
+def spe_reactors(data, E, tau=3.1536e7):
+    # Calculation of the spectrum as produced by every reactors
+    # data = reactors data
+    # E = Energy Axis
+    # tau = 3.1536e7 #s = 1 year acquisition time
+
+    spe_dict = dict()
+
+    from tqdm.notebook import tqdm
+    for i, row in tqdm(data.iterrows(), total=data.shape[0]):
+        spe = spe_reactor(E, float(row['Pth [MW]']), row['LF'] / 100., row['Fuel'], tau)  # [#nu*m^2/10 keV]
+        spe_dict[i] = spe
+
+    return spe_dict
+
+def spe_reactor(E, P, lf, fuel, tau = 3.1536e7):
+
+    # Calculation of the spectrum as produced by one reactors
+    # E = Energy Axis
+    # P = Reactor Thermal Power in MW
+    # lf = load factor
+    # fuel = which fuel operate the reactor
+    # tau = 3.1536e7 #s = 1 year acquisition time
+
+    ###########################Norm factor due to reactor###########################
+
+    Pn = P*1e6*6.241509e12 # Thermal Power from MW to MeV/s
+    N_norm_reactor = tau*Pn*lf #[s*MeV/s] = [MeV]
+
+    #print('-------> Constants_reactor')
+    #print('-------> <Energy Axis>[MeV]: ', E.mean())
+    #print('-------> P[MW]: ', P)
+    #print('-------> Pn[MeV/s]: ', Pn)
+    #print('-------> tau[s]: ', tau)
+    #print('-------> lf: ', lf)
+    #print('------->norm_reactor [MeV]: ', N_norm_reactor)
+
+    spe = dict()
+
+    # Get convolved Muller antineutrino spectra with IBD cross section for each element
+    mu_spe = build_spectra(E) #[(#nu*m^2)/(10 keV*fission)]]
+
+    p = fuels.p # Power fraction from fuels.py
+    Q = fuels.Q # [MeV/fission] Energy released per fission from fuels.py
+
+    p_fuels = p[fuel]
+
+    for item in p_fuels.items():
+        tot_spe = np.zeros(len(E))
+        p_fuel = item[1]
+        spe[item[0]] = dict()
+
+        for el in mu_spe:
+            norm = p_fuel[el]/Q[el]  # [fission/MeV]
+            #print('-------> p_fuel[el]: ', p_fuel[el])
+            #print('-------> Q[el]: ', Q[el])
+            #print('-------> norm: ', norm)
+            #print('-------> <mu_spe>: ', mu_spe[el].mean())
+            temp_spe = mu_spe[el]*norm*N_norm_reactor  # [(#nu*m^2)/(10 keV*fission)]*[fission/MeV]*[MeV] = [#nu*m^2/10 keV]
+            tot_spe = tot_spe+temp_spe
+            spe[item[0]][el] = temp_spe
+        spe[item[0]]['Tot'] = tot_spe
+    return spe
 
 def spectrum(data, E, det_lat, det_lon, det_depth, tau = 3.1536e7, hierarchy = 'NH', inMatter = False):
     # Calculation of spectrum for all reactors [Marica Baldoncini, et al. Phys. Rev. D 91, 065002] Eq. 15
@@ -101,7 +159,7 @@ def spectrum(data, E, det_lat, det_lon, det_depth, tau = 3.1536e7, hierarchy = '
     #           |
     #       [reactors]
     #           |
-    #           |-->[no_time]or[fuel compos. variation over time]
+    #           |-->[no_burn_up]or[fuel compos. variation over time]
     #                               |
     #                               |-->[U235][U238][Pu239][Pu241]
     # data = reactors data
@@ -120,39 +178,20 @@ def spectrum(data, E, det_lat, det_lon, det_depth, tau = 3.1536e7, hierarchy = '
 
     from tqdm.notebook import tqdm
     for i, row in tqdm(data.iterrows(), total=data.shape[0]):
+
         #Get spectrum for single reactor
         spe = spectrum_single(E, det_lat, det_lon, det_depth, float(row['Lat']), float(row['Lon']), float(row['Pth [MW]']), row['LF']/100., row['Fuel'], tau, hierarchy, inMatter)
         spe_dict[row['Name']]=spe
-        
-
-
 
     return spe_dict
 
-
-    
-def spe_reactors(data, E, tau = 3.1536e7):
-    
-    # Calculation of the spectrum at reactor location at every reactor locations
-    # data = reactors data
-    # E = Energy Axis
-    # tau = 3.1536e7 #s = 1 year acquisition time
-
-    spe_dict = dict()
-
-    from tqdm.notebook import tqdm
-    for i, row in tqdm(data.iterrows(), total=data.shape[0]):
-        spe = spe_reactor(E, float(row['Pth [MW]']), row['LF']/100., row['Fuel'], tau) #[#nu*m^2/10 keV]
-        spe_dict[i]=spe
-
-    return spe_dict
 
 def spectrum_single(E, det_lat, det_lon, det_depth, rea_lat, rea_lon, P, lf, fuel, tau = 3.1536e7, hierarchy = 'NH', inMatter = False):
     
     # Calculation of spectrum for a single reactor [Marica Baldoncini, et al. Phys. Rev. D 91, 065002] Eq. 15
     #   spe = dict()
     #    |
-    #    |-->[no_time]or[fuel compos. variation over time]
+    #    |-->[no_burn_up]or[fuel compos. variation over time]
     #                       |
     #                       |-->[U235][U238][Pu239][Pu241]
     
@@ -191,6 +230,16 @@ def spectrum_single(E, det_lat, det_lon, det_depth, rea_lat, rea_lon, P, lf, fue
     ###########################Norm factor due to detector###########################
     N_norm_detector = eff * targets * geom  # [#prot/m^2]
 
+    #print('Constants')
+    #print('Efficiency: ', eff)
+    #print('Targets: ', targets)
+    #print('Distance [m]: ', distance)
+    #print('Geom_factor [m^-2]: ', geom)
+    #print('norm_detector [prot*m^-2]: ', N_norm_detector)
+    #print('Average Pee: ', Pee.mean())
+
+
+
     ###########################Spectra for each reactors###########################
     spe_react = spe_reactor(E, P, lf, fuel, tau)  # [#nu*m^2/10 keV] #
 
@@ -213,43 +262,6 @@ def spectrum_single(E, det_lat, det_lon, det_depth, rea_lat, rea_lon, P, lf, fue
 
 
 
-def spe_reactor(E, P, lf, fuel, tau = 3.1536e7):
-
-    # Calculation of the spectrum at reactor location
-    # E = Energy Axis
-    # P = Reactor Thermal Power in MW
-    # lf = load factor
-    # fuel = which fuel operate the reactor
-    # tau = 3.1536e7 #s = 1 year acquisition time
-
-    ###########################Norm factor due to reactor###########################
-
-    Pn = P*1e6*6.241509e12 # Thermal Power from MW to MeV/s
-    N_norm_reactor = tau*Pn*lf #[s*MeV/s] = [MeV]
-
-
-    spe = dict()
-
-    # Get convolved Muller antineutrino spectra with IBD cross section for each element
-    mu_spe = build_spectra(E) #[(#nu*m^2)/(10 keV*fission)]]
-
-    p = fuels.p # Power fraction from fuels.py
-    Q = fuels.Q # [MeV/fission] Energy released per fission from fuels.py
-
-    p_fuels = p[fuel]
-
-    for item in p_fuels.items():
-        tot_spe = np.zeros(len(E))
-        p_fuel = item[1]
-        spe[item[0]] = dict()
-
-        for el in mu_spe:
-            norm = p_fuel[el]/Q[el]  # [fission/MeV]
-            temp_spe = mu_spe[el]*norm*N_norm_reactor  # [(#nu*m^2)/(10 keV*fission)]*[fission/MeV]*[MeV] = [#nu*m^2/10 keV]
-            tot_spe = tot_spe+temp_spe
-            spe[item[0]][el] = temp_spe
-        spe[item[0]]['Tot'] = tot_spe
-    return spe
 
 
     
