@@ -8,9 +8,12 @@ def getParams(hierarchy = 'NH'):
     if hierarchy == 'NH':
 
         params['dm2_21'] = 7.54e-5
-        params['Dm2_32'] = 0.0023969136#2.453e-3
-        params['s2_12'] = 3.07e-1
-        params['s2_13'] = 2.18e-2
+        params['Dm2_32'] = 0.0023969136
+        #params['Dm2_32'] = 0.00243#Baldoncini
+        #params['s2_12'] = 3.08e-1 #Baldoncini
+        params['s2_12'] = 3.07e-1 #Lisi
+        #params['s2_13'] = 2.34e-2 #Baldoncini
+        params['s2_13'] = 2.18e-2 #Lisi
         params['s2_23'] = 5.45e-1
 
         #dm2_21 = 7.34e-5
@@ -74,7 +77,6 @@ def Pee3v_39(d, E_nu, hierarchy = 'NH', inMatter = False): # m, keV
     s4_13 = s2_13**2
 
 
-    conv_factor = 1.26693
     d = 52500
 
     Delta_small = get_delta_small(dm2_21 , d , E_nu) # dm = dm2_21
@@ -85,17 +87,17 @@ def Pee3v_39(d, E_nu, hierarchy = 'NH', inMatter = False): # m, keV
     P2v = P2_vac(s2_2th12, Delta_small)
 
     if inMatter:
-        #P2v = P2_mat(s2_2th12, eMev, dm2_21, conv_factor, d, Ne=1.3)
-        w = get_damp_fact(d, E_nu, [], [], hierarchy)
+        P2v = P2_mat(s2_2th12, eMev, dm2_21,  d, Ne=1.3)
+        #w = get_damp_fact(d, E_nu, [], [], hierarchy)
 
     
     D_ee = get_Dee(d,eMev , hierarchy)
     phi, phi_2 = get_phi(d, eMev, hierarchy)
 
-    prob = c4_13 * P2v + s4_13 + 2 * s2_13 * c2_13 * np.sqrt(P2v) * w * np.cos(2 * D_ee + alpha * phi)
+    Pee = c4_13 * P2v + s4_13 + 2 * s2_13 * c2_13 * np.sqrt(P2v) * w * np.cos(2 * D_ee + alpha * phi)
 
     
-    return prob
+    return Pee
 
 
 
@@ -170,17 +172,13 @@ def P2_vac(s2_2th12, Delta_small):
     P2v_vac = 1 - s2_2th12 * (np.sin(Delta_small)) ** 2
     return P2v_vac
 
-def P2_mat(s2_2th12, eMev, dm2_21, conv_factor, d, Ne=1.3):
+def P2_mat(s2_2th12, eMev, dm2_21,  d, Ne=1.3):
 
     # Return electron 2-neutrino oscillation survival probability in matter [F. Capozzi, E. Lisi, and A. Marrone Phys. Rev. D 89, 013001 – Published 9 January 2014] Eq. 56-57-59
 
-    r = 1.526e-7 * Ne * eMev / dm2_21
+    r_cos2th12=get_rcos_mat(s2_2th12, eMev, dm2_21, Ne)
 
     s_2th12 = np.sqrt(s2_2th12)
-    c_2th12 = np.sqrt(1 - s2_2th12)
-
-    #print(r * c_2th12)
-    r_cos2th12=get_rcos_mat(s2_2th12, eMev, dm2_21, Ne)
     s_2th12_ma = (s_2th12 * (1 - r_cos2th12))
     s2_2th12_ma = s_2th12_ma**2
 
@@ -188,7 +186,6 @@ def P2_mat(s2_2th12, eMev, dm2_21, conv_factor, d, Ne=1.3):
     Delta_small_ma = get_delta_small(dm2_21_ma, d, eMev)  # dm = dm2_21
 
     P2_mat = P2_vac(s2_2th12_ma, Delta_small_ma)
-    #P2_mat = 1 - (s2_2th12_ma) * np.sin(Delta_small_ma) ** 2
 
     return P2_mat
 
